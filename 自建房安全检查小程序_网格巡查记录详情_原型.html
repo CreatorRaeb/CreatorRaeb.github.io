@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网格巡查记录详情</title>
+    <style>
+        :root {
+            --fa-primary: #0b68da;
+            --fa-primary-hover: #0956b8;
+            --fa-primary-light: #d2e1f6;
+            --fa-primary-focus: #cde0fc;
+            --fa-success: #67c23a;
+            --fa-success-light: #f1f8ec;
+            --fa-warning: #f69e1b;
+            --fa-warning-light: #fcf5ea;
+            --fa-danger: #ff5e5e;
+            --fa-danger-light: #fcefef;
+            --fa-text-primary: #303133;
+            --fa-text-secondary: #606266;
+            --fa-text-placeholder: #909399;
+            --fa-text-disabled: #c0c4cc;
+            --fa-text-field-label: #7f7f7f;
+            --fa-bg-page: #efeff4;
+            --fa-bg-container: #ffffff;
+            --fa-bg-secondary: #efeff4;
+            --fa-border: #eee;
+            --fa-radius: 5px;
+            --fa-radius-lg: 5px;
+            --fa-radius-round: 999px;
+            --fa-font-size-xs: 12px;
+            --fa-font-size-s: 12px;
+            --fa-font-size-base: 14px;
+            --fa-font-size-m: 16px;
+            --fa-font-size-l: 18px;
+            --fa-spacer-1: 4px;
+            --fa-spacer-2: 8px;
+            --fa-spacer-3: 12px;
+            --fa-spacer-4: 16px;
+            --fa-spacer-5: 20px;
+            --fa-spacer-6: 24px;
+            --fa-spacer-8: 32px;
+            --fa-shadow-1: 0 4px 16px 0 #0000000d;
+            --fa-shadow-2: 0 -5px 10px rgba(0,0,0,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: "Alibaba PuHuiTi 2.0", -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--fa-bg-page);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container { width: 100%; max-width: 480px; }
+
+        .phone-frame {
+            background: var(--fa-bg-page);
+            border-radius: var(--fa-radius-lg);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3), 0 0 0 6px #111;
+            overflow: hidden;
+            height: 800px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ========== 导航栏 ========== */
+        .nav-bar {
+            background: var(--fa-bg-container);
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--fa-border);
+        }
+        .nav-status-bar {
+            padding: 8px var(--fa-spacer-5);
+            display: flex;
+            justify-content: space-between;
+            font-size: var(--fa-font-size-s);
+            color: var(--fa-text-secondary);
+        }
+        .nav-content {
+            padding: var(--fa-spacer-3) var(--fa-spacer-5);
+            display: flex;
+            align-items: center;
+            gap: var(--fa-spacer-3);
+        }
+        .nav-back {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border: none; background: none; cursor: pointer;
+            color: var(--fa-text-secondary); border-radius: 50%;
+            transition: background 0.15s;
+        }
+        .nav-back:active { background: rgba(0,0,0,0.05); }
+        .nav-title {
+            font-size: var(--fa-font-size-m);
+            font-weight: 700;
+            color: var(--fa-text-primary);
+            letter-spacing: 1px;
+        }
+
+        /* ========== 滚动内容 ========== */
+        .scroll-content {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* ========== 信息区块 ========== */
+        .section-card {
+            background: var(--fa-bg-container);
+            margin: var(--fa-spacer-3) var(--fa-spacer-4);
+            border-radius: var(--fa-radius-lg);
+            box-shadow: var(--fa-shadow-1);
+            overflow: hidden;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: var(--fa-spacer-2);
+            padding: var(--fa-spacer-3) var(--fa-spacer-4);
+            border-bottom: 1px solid var(--fa-border);
+        }
+        .section-dot {
+            width: 4px; height: 16px;
+            border-radius: 2px;
+            background: var(--fa-primary);
+        }
+        .section-title {
+            font-size: var(--fa-font-size-base);
+            font-weight: 600;
+            color: var(--fa-text-primary);
+        }
+        .section-body {
+            padding: var(--fa-spacer-2) var(--fa-spacer-4) var(--fa-spacer-4);
+        }
+
+        /* ========== 字段行 ========== */
+        .field-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--fa-border);
+            gap: var(--fa-spacer-3);
+        }
+        .field-row:last-child { border-bottom: none; }
+        .field-label {
+            font-size: var(--fa-font-size-s);
+            color: var(--fa-text-field-label);
+            white-space: nowrap;
+            flex-shrink: 0;
+            line-height: 1.6;
+        }
+        .field-value {
+            font-size: var(--fa-font-size-s);
+            color: var(--fa-text-primary);
+            text-align: right;
+            word-break: break-all;
+            line-height: 1.6;
+        }
+
+        /* ========== 是/否标签 ========== */
+        .tag-yes {
+            display: inline-block;
+            font-size: var(--fa-font-size-xs);
+            padding: 2px 10px;
+            border-radius: var(--fa-radius-round);
+            background: var(--fa-danger-light);
+            color: var(--fa-danger);
+            font-weight: 500;
+        }
+        .tag-no {
+            display: inline-block;
+            font-size: var(--fa-font-size-xs);
+            padding: 2px 10px;
+            border-radius: var(--fa-radius-round);
+            background: var(--fa-success-light);
+            color: var(--fa-success);
+            font-weight: 500;
+        }
+        .tag-match {
+            display: inline-block;
+            font-size: var(--fa-font-size-xs);
+            padding: 2px 10px;
+            border-radius: var(--fa-radius-round);
+            background: var(--fa-primary-light);
+            color: var(--fa-primary);
+            font-weight: 500;
+        }
+
+        /* ========== Toast ========== */
+        .td-toast {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 5px;
+            font-size: 13px;
+            z-index: 9999;
+            display: none;
+            pointer-events: none;
+        }
+        .td-toast.show { display: block; animation: toastFade 0.2s ease; }
+        @keyframes toastFade {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* ========== iframe 适配 ========== */
+        html.in-iframe body { background: var(--fa-bg-page); }
+        html.in-iframe .phone-frame {
+            border-radius: 0;
+            box-shadow: none;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="phone-frame">
+        <!-- 导航栏 -->
+        <div class="nav-bar">
+            <div class="nav-status-bar">
+                <span>09:41</span>
+                <span>●●● WiFi ▊</span>
+            </div>
+            <div class="nav-content">
+                <button class="nav-back" onclick="goBack()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <span class="nav-title">网格巡查记录详情</span>
+            </div>
+        </div>
+
+        <!-- 滚动内容 -->
+        <div class="scroll-content">
+            <div class="section-card">
+                <div class="section-header">
+                    <span class="section-dot"></span>
+                    <span class="section-title">巡查信息</span>
+                </div>
+                <div class="section-body" id="gridInfoBody">
+                    <!-- JS 渲染 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div class="td-toast" id="toast"></div>
+    </div>
+</div>
+
+<script>
+    // iframe 检测
+    if (window.parent !== window) document.documentElement.classList.add('in-iframe');
+
+    // ====== 历史记录完整数据（与历史网格巡查记录页一致，并扩展全部字段）======
+    const ALL_RECORDS = [
+        { accessTime: '2025-06-27 05:04:28', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '是', businessPurpose: '餐饮小吃店', hasDecoration: '是', hasAddition: '是', hasFunctionChange: '否', hasGroundCrack: '是', hasUndergroundWork: '是', hasSlope: '是', hasResidents: '是', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2025-05-30 14:22:15', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '是', businessPurpose: '餐饮小吃店', hasDecoration: '否', hasAddition: '是', hasFunctionChange: '否', hasGroundCrack: '是', hasUndergroundWork: '否', hasSlope: '是', hasResidents: '是', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2025-05-02 09:11:03', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '是', businessPurpose: '餐饮小吃店', hasDecoration: '是', hasAddition: '是', hasFunctionChange: '否', hasGroundCrack: '否', hasUndergroundWork: '否', hasSlope: '否', hasResidents: '是', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2025-04-04 16:38:47', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '否', businessPurpose: '—', hasDecoration: '否', hasAddition: '否', hasFunctionChange: '否', hasGroundCrack: '否', hasUndergroundWork: '否', hasSlope: '否', hasResidents: '是', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2025-03-07 11:55:32', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '是', businessPurpose: '便利超市', hasDecoration: '否', hasAddition: '是', hasFunctionChange: '是', hasGroundCrack: '是', hasUndergroundWork: '否', hasSlope: '否', hasResidents: '是', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2025-02-07 08:20:19', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '否', businessPurpose: '—', hasDecoration: '否', hasAddition: '否', hasFunctionChange: '否', hasGroundCrack: '否', hasUndergroundWork: '否', hasSlope: '否', hasResidents: '否', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2025-01-10 17:44:08', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '是', businessPurpose: '餐饮小吃店', hasDecoration: '是', hasAddition: '否', hasFunctionChange: '否', hasGroundCrack: '否', hasUndergroundWork: '否', hasSlope: '否', hasResidents: '是', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2024-12-13 06:33:51', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '否', businessPurpose: '—', hasDecoration: '否', hasAddition: '是', hasFunctionChange: '否', hasGroundCrack: '是', hasUndergroundWork: '否', hasSlope: '否', hasResidents: '是', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2024-11-15 13:07:26', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '是', businessPurpose: '五金建材店', hasDecoration: '否', hasAddition: '否', hasFunctionChange: '否', hasGroundCrack: '否', hasUndergroundWork: '否', hasSlope: '否', hasResidents: '否', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2024-10-18 10:49:55', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '否', businessPurpose: '—', hasDecoration: '是', hasAddition: '否', hasFunctionChange: '是', hasGroundCrack: '否', hasUndergroundWork: '否', hasSlope: '否', hasResidents: '是', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2024-09-20 15:16:34', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '是', businessPurpose: '餐饮小吃店', hasDecoration: '否', hasAddition: '是', hasFunctionChange: '否', hasGroundCrack: '否', hasUndergroundWork: '否', hasSlope: '否', hasResidents: '是', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2024-08-23 20:02:42', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '否', businessPurpose: '—', hasDecoration: '否', hasAddition: '否', hasFunctionChange: '否', hasGroundCrack: '否', hasUndergroundWork: '否', hasSlope: '否', hasResidents: '否', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+        { accessTime: '2024-07-26 07:58:17', buildingCode: '4403030100010300147', xCoord: '114.162454229736', yCoord: '22.5677649701873', district: '罗湖区', isBusinessPlace: '是', businessPurpose: '餐饮小吃店', hasDecoration: '是', hasAddition: '否', hasFunctionChange: '否', hasGroundCrack: '否', hasUndergroundWork: '否', hasSlope: '否', hasResidents: '是', dataSource: '市数据共享平台', matchStatus: '自动匹配' },
+    ];
+
+    // ====== 渲染 ======
+    function tag(val) {
+        if (val === '是') return '<span class="tag-yes">是</span>';
+        if (val === '否') return '<span class="tag-no">否</span>';
+        return val;
+    }
+
+    function renderDetail() {
+        const params = new URLSearchParams(window.location.search);
+        const idx = parseInt(params.get('recordIndex') || '0');
+        const r = ALL_RECORDS[idx] || ALL_RECORDS[0];
+
+        const fields = [
+            ['接入时间', r.accessTime],
+            ['建筑编码', r.buildingCode],
+            ['X坐标', r.xCoord],
+            ['Y坐标', r.yCoord],
+            ['行政区划', r.district],
+            ['是否经营性场所', tag(r.isBusinessPlace)],
+            ['经营性用途', r.businessPurpose],
+            ['是否装修', tag(r.hasDecoration)],
+            ['是否加建', tag(r.hasAddition)],
+            ['是否改变功能', tag(r.hasFunctionChange)],
+            ['是否地面下沉开裂', tag(r.hasGroundCrack)],
+            ['是否地下施工', tag(r.hasUndergroundWork)],
+            ['是否山体边坡', tag(r.hasSlope)],
+            ['是否有人居住', tag(r.hasResidents)],
+            ['数据来源', r.dataSource],
+            ['与系统建筑编码匹配情况', '<span class="tag-match">' + r.matchStatus + '</span>']
+        ];
+        let html = '';
+        fields.forEach(([label, value]) => {
+            html += '<div class="field-row"><span class="field-label">' + label + '</span><span class="field-value">' + value + '</span></div>';
+        });
+        document.getElementById('gridInfoBody').innerHTML = html;
+    }
+
+    // ====== 导航 ======
+    function goBack() {
+        if (window.parent !== window) {
+            window.parent.postMessage({ type: 'navigateBack' }, '*');
+        } else {
+            history.back();
+        }
+    }
+
+    // ====== Toast ======
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // ====== 初始化 ======
+    renderDetail();
+</script>
+
+</body>
+</html>

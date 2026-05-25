@@ -2,19 +2,22 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>自建房巡查 - 小程序原型</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>自建房安全检查</title>
     <style>
         :root {
-            --td-brand-color: #0052d9;
-            --td-brand-color-light: #ecf2fe;
-            --td-bg-color-page: #f5f5f5;
-            --td-bg-color-container: #ffffff;
-            --td-border-color: #e7e7e7;
-            --td-text-color-primary: #1a1a1a;
-            --td-text-color-secondary: #444444;
-            --td-text-color-placeholder: #bbbbbb;
-            --td-shadow-1: 0 1px 6px rgba(0, 0, 0, 0.05);
+            --fa-primary: #0b68da;
+            --fa-bg-page: #efeff4;
+            --fa-bg-container: #ffffff;
+            --fa-text-primary: #303133;
+            --fa-text-secondary: #606266;
+            --fa-text-placeholder: #909399;
+            --fa-border: #eee;
+            --fa-shadow-2: 0 -5px 10px rgba(0,0,0,0.1);
+            --phone-w: 420px;
+            --phone-h: 860px;
+            --phone-radius: 44px;
+            --phone-bezel: 10px;
         }
 
         * {
@@ -23,103 +26,172 @@
             box-sizing: border-box;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: "Alibaba PuHuiTi 2.0", -apple-system, BlinkMacSystemFont, sans-serif;
             background: linear-gradient(160deg, #0b1a3e 0%, #162d6e 40%, #1e3f8f 100%);
-            min-height: 100vh;
+        }
+
+        /* ====== 页面居中容器 ====== */
+        .page-center {
+            width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        /* ========== 外壳容器 ========== */
-        .shell {
-            width: 100%;
-            max-width: 440px;
-            background: #000;
-            border-radius: 40px;
-            box-shadow: 0 40px 80px rgba(0,0,0,0.4), 0 0 0 3px #222;
+        /* ====== 手机外壳 ====== */
+        .phone-shell {
+            width: calc(var(--phone-w) + var(--phone-bezel) * 2);
+            height: calc(var(--phone-h) + var(--phone-bezel) * 2);
+            background: #111;
+            border-radius: calc(var(--phone-radius) + var(--phone-bezel));
+            box-shadow:
+                0 30px 60px rgba(0,0,0,0.4),
+                0 0 0 2px #333,
+                inset 0 0 0 1px #222;
+            position: relative;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 860px;
-            position: relative;
-        }
-
-        /* ========== 顶部导航栏 ========== */
-        .shell-navbar {
-            background: var(--td-brand-color);
-            padding: 10px 20px 12px;
-            padding-top: 36px; /* 刘海/状态栏区域 */
             flex-shrink: 0;
-            position: relative;
         }
 
-        .shell-navbar::before {
-            content: '';
+        /* 刘海 */
+        .phone-notch {
             position: absolute;
-            top: 12px;
+            top: 0;
             left: 50%;
             transform: translateX(-50%);
-            width: 120px;
+            width: 150px;
             height: 28px;
-            background: #000;
-            border-radius: 14px;
+            background: #111;
+            border-radius: 0 0 18px 18px;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .notch-cam {
+            width: 10px;
+            height: 10px;
+            background: #1a1a2e;
+            border-radius: 50%;
+            border: 1px solid #2a2a3e;
+        }
+
+        /* 手机屏幕区域 */
+        .phone-screen {
+            position: absolute;
+            top: var(--phone-bezel);
+            left: var(--phone-bezel);
+            right: var(--phone-bezel);
+            bottom: var(--phone-bezel);
+            border-radius: var(--phone-radius);
+            overflow: hidden;
+            background: var(--fa-bg-page);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ====== 顶部导航栏 ====== */
+        .shell-navbar {
+            flex-shrink: 0;
+            background: var(--fa-bg-container);
+            box-shadow: var(--fa-shadow-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 44px;
+            position: relative;
+            z-index: 100;
+            transition: opacity 0.2s ease;
+        }
+
+        .shell-navbar.hide {
+            opacity: 0;
+            pointer-events: none;
+            height: 0;
+            overflow: hidden;
         }
 
         .shell-navbar-title {
-            font-size: 17px;
-            font-weight: 600;
-            color: #fff;
-            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--fa-text-primary);
+            letter-spacing: 1px;
         }
 
-        /* ========== iframe 内容区 ========== */
-        .shell-body {
-            flex: 1;
-            overflow: hidden;
-            background: var(--td-bg-color-page);
-            position: relative;
-        }
-
-        .shell-body iframe {
-            width: 100%;
-            height: 100%;
+        .shell-navbar-back {
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
             border: none;
-            display: block;
-            background: transparent;
+            background: none;
+            color: var(--fa-text-secondary);
+            font-size: 18px;
+            border-radius: 50%;
+            transition: background 0.15s;
         }
 
-        /* 页面切换过渡层 */
-        .page-transition-overlay {
+        .shell-navbar-back:active {
+            background: rgba(0,0,0,0.05);
+        }
+
+        .shell-navbar-back.show {
+            display: flex;
+        }
+
+        /* ====== iframe 容器 ====== */
+        .iframe-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .iframe-container iframe {
             position: absolute;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--td-bg-color-page);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.15s ease;
-            z-index: 10;
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: none;
+            background: var(--fa-bg-page);
         }
 
-        .page-transition-overlay.active {
-            opacity: 1;
+        .iframe-container iframe.active {
+            display: block;
         }
 
-        /* ========== 转场动画 ========== */
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(30px); }
-            to { opacity: 1; transform: translateX(0); }
+        /* ====== 底部横条（Home Indicator） ====== */
+        .phone-home-bar {
+            flex-shrink: 0;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--fa-bg-container);
         }
 
-        @keyframes slideOut {
-            from { opacity: 0; transform: translateX(-30px); }
-            to { opacity: 1; transform: translateX(0); }
+        .phone-home-bar-inner {
+            width: 36%;
+            height: 4px;
+            background: #ccc;
+            border-radius: 2px;
         }
 
-        /* ========== 状态提示 Toast ========== */
+        /* ====== Toast ====== */
         .shell-toast {
             position: absolute;
             top: 50%;
@@ -127,9 +199,9 @@
             transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.75);
             color: #fff;
-            padding: 10px 24px;
-            border-radius: 6px;
-            font-size: 13px;
+            padding: 12px 28px;
+            border-radius: 5px;
+            font-size: 14px;
             z-index: 2000;
             display: none;
             pointer-events: none;
@@ -137,155 +209,221 @@
 
         .shell-toast.show {
             display: block;
-            animation: fadeUp 0.2s ease;
+            animation: shellToastFade 0.2s ease;
         }
 
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translate(-50%, -40%); }
-            to { opacity: 1; transform: translate(-50%, -50%); }
+        @keyframes shellToastFade {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* ====== 响应式：小屏幕时缩放 ====== */
+        @media (max-height: 960px) {
+            .phone-shell {
+                transform: scale(0.88);
+                transform-origin: center center;
+            }
+        }
+
+        @media (max-height: 780px) {
+            .phone-shell {
+                transform: scale(0.75);
+                transform-origin: center center;
+            }
+        }
+
+        @media (max-width: 420px) {
+            :root {
+                --phone-w: calc(100vw - 20px);
+                --phone-h: calc(100vh - 60px);
+                --phone-radius: 20px;
+                --phone-bezel: 5px;
+            }
+
+            .page-center {
+                align-items: flex-end;
+                padding-bottom: 10px;
+            }
+
+            .phone-notch {
+                height: 20px;
+                width: 120px;
+                border-radius: 0 0 12px 12px;
+            }
+
+            .phone-home-bar {
+                height: 14px;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="shell">
-    <!-- 顶部导航栏 -->
-    <div class="shell-navbar">
-        <div class="shell-navbar-title" id="navbarTitle">自建房巡查</div>
+    <div class="page-center">
+        <div class="phone-shell">
+            <!-- 刘海 -->
+            <div class="phone-notch">
+                <div class="notch-cam"></div>
+            </div>
+
+            <!-- 屏幕 -->
+            <div class="phone-screen">
+                <!-- 顶部导航栏 -->
+                <div class="shell-navbar" id="shellNavbar">
+                    <button class="shell-navbar-back" id="backBtn" onclick="goBack()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <span class="shell-navbar-title" id="navTitle">自建房巡查</span>
+                </div>
+
+                <!-- iframe 容器 -->
+                <div class="iframe-container" id="iframeContainer">
+                    <!-- 列表页 -->
+                    <iframe id="frame-list" src="自建房安全检查列表_小程序端_原型.html" class="active"></iframe>
+                    <!-- 新增检查页 -->
+                    <iframe id="frame-form" src="新增检查_小程序端_原型.html"></iframe>
+                    <!-- 检查记录页 -->
+                    <iframe id="frame-records" src="检查记录_小程序端_原型.html"></iframe>
+                    <!-- 检查记录详情页 -->
+                    <iframe id="frame-detail" src="检查记录详情_小程序端_原型.html"></iframe>
+                    <!-- 地图视图页 -->
+                    <iframe id="frame-map" src="自建房安全检查地图_小程序端_原型.html"></iframe>
+                    <!-- 审核页（正常） -->
+                    <iframe id="frame-audit" src="自建房安全检查小程序_检查记录审核页（正常）_原型.html"></iframe>
+                    <!-- 审核页（不正常） -->
+                    <iframe id="frame-auditAbnormal" src="自建房安全检查小程序_检查记录审核页（不正常）_原型.html"></iframe>
+                    <!-- 专业核实页 -->
+                    <iframe id="frame-proVerify" src="自建房安全检查小程序_专业核实_原型.html"></iframe>
+                    <!-- 网格巡查记录页 -->
+                    <iframe id="frame-gridRecord" src="自建房安全检查小程序_网格巡查记录_原型.html"></iframe>
+                    <!-- 历史网格巡查记录页 -->
+                    <iframe id="frame-gridRecordHistory" src="自建房安全检查小程序_历史网格巡查记录_原型.html"></iframe>
+                    <!-- 网格巡查记录详情页 -->
+                    <iframe id="frame-gridRecordDetail" src="自建房安全检查小程序_网格巡查记录详情_原型.html"></iframe>
+                </div>
+
+                <!-- 底部 Home Indicator -->
+                <div class="phone-home-bar">
+                    <div class="phone-home-bar-inner"></div>
+                </div>
+            </div>
+
+            <!-- Toast（放在 phone-shell 内部，定位相对于屏幕） -->
+            <div class="shell-toast" id="shellToast" style="position:absolute; top:50%; left:50%;"></div>
+        </div>
     </div>
 
-    <!-- 内容区 -->
-    <div class="shell-body">
-        <div class="page-transition-overlay" id="transitionOverlay"></div>
-        <iframe id="mainFrame" src="自建房安全检查小程序_任务列表页_原型.html" allow="clipboard-read; clipboard-write"></iframe>
-    </div>
+    <script>
+        // ====== 路由表 ======
+        const ROUTES = {
+            list:    { frame: 'frame-list',    title: '自建房巡查',   showNav: true,  showBack: false },
+            form:    { frame: 'frame-form',    title: '新增安全检查', showNav: true,  showBack: true  },
+            records: { frame: 'frame-records', title: '检查记录',     showNav: true,  showBack: true  },
+            detail:  { frame: 'frame-detail',  title: '检查记录详情', showNav: true,  showBack: true  },
+            map:     { frame: 'frame-map',     title: '地图找房',     showNav: true,  showBack: true  },
+            audit:           { frame: 'frame-audit',           title: '检查记录审核', showNav: true, showBack: true },
+            auditAbnormal:   { frame: 'frame-auditAbnormal',   title: '检查记录审核', showNav: true, showBack: true },
+            proVerify:       { frame: 'frame-proVerify',       title: '专业核实',     showNav: true, showBack: true },
+            gridRecord:      { frame: 'frame-gridRecord',      title: '网格巡查记录',     showNav: true, showBack: true },
+            gridRecordHistory: { frame: 'frame-gridRecordHistory', title: '历史网格巡查记录', showNav: true, showBack: true },
+            gridRecordDetail:  { frame: 'frame-gridRecordDetail',  title: '网格巡查记录详情', showNav: true, showBack: true }
+        };
 
-    <!-- Toast -->
-    <div class="shell-toast" id="shellToast"></div>
-</div>
+        // ====== 导航历史 ======
+        let navHistory = ['list'];
 
-<script>
-    // ====== Tab 配置 ======
-    const TABS = {
-        list: {
-            title: '自建房巡查',
-            src: '自建房安全检查小程序_任务列表页_原型.html',
-            showTab: true
-        },
-        form: {
-            title: '新增安全检查',
-            src: '自建房安全检查小程序_新增检查_原型.html',
-            showTab: true
-        },
-        records: {
-            title: '检查记录',
-            src: '自建房安全检查小程序_检查记录页_原型.html',
-            showTab: false
-        },
-        detail: {
-            title: '检查记录详情',
-            src: '自建房安全检查小程序_检查记录详情页_原型.html',
-            showTab: false
-        },
-        audit: {
-            title: '检查记录审核',
-            src: '自建房安全检查小程序_检查记录审核页（正常）_原型.html',
-            showTab: false
-        },
-        auditAbnormal: {
-            title: '检查记录审核',
-            src: '自建房安全检查小程序_检查记录审核页（不正常）_原型.html',
-            showTab: false
-        },
-        proVerify: {
-            title: '专业核实',
-            src: '自建房安全检查小程序_专业核实_原型.html',
-            showTab: false
-        },
-        more: {
-            title: '更多功能',
-            src: '',  // 预留
-            showTab: true
-        }
-    };
+        // ====== 当前页 ======
+        let currentTab = 'list';
 
-    let currentTab = 'list';
+        // ====== 切换页面 ======
+        function switchTab(tabKey, params) {
+            const route = ROUTES[tabKey];
+            if (!route) return;
 
-    // ====== 切换 Tab / 页面 ======
-    function switchTab(tabKey, params) {
-        const config = TABS[tabKey];
-        if (!config) return;
+            // 隐藏所有 iframe
+            document.querySelectorAll('.iframe-container iframe').forEach(f => f.classList.remove('active'));
 
-        // 拼接 URL 参数
-        let src = config.src;
-        if (params && Object.keys(params).length > 0) {
-            const qs = new URLSearchParams(params).toString();
-            src += (src.includes('?') ? '&' : '?') + qs;
+            // 显示目标 iframe
+            const targetFrame = document.getElementById(route.frame);
+            targetFrame.classList.add('active');
+
+            // 如果带参数，通过 URL params 传递给子页面
+            if (params && Object.keys(params).length > 0) {
+                const query = new URLSearchParams(params).toString();
+                const src = targetFrame.getAttribute('src').split('?')[0];
+                targetFrame.src = src + '?' + query;
+            }
+
+            // 更新导航栏
+            const navbar = document.getElementById('shellNavbar');
+            const navTitle = document.getElementById('navTitle');
+            const backBtn = document.getElementById('backBtn');
+
+            if (route.showNav) {
+                navbar.classList.remove('hide');
+                navTitle.textContent = route.title;
+                backBtn.classList.toggle('show', route.showBack);
+            } else {
+                navbar.classList.add('hide');
+            }
+
+            // 记录历史
+            if (tabKey !== currentTab) {
+                navHistory.push(tabKey);
+                currentTab = tabKey;
+            }
         }
 
-        // 只有 TabBar 页面才更新选中态
-        if (config.showTab) {
-            document.querySelectorAll('.tabbar-item').forEach(el => {
-                el.classList.toggle('active', el.dataset.tab === tabKey);
-            });
+        // ====== 返回上一页 ======
+        function goBack() {
+            if (navHistory.length > 1) {
+                navHistory.pop();
+                const prevTab = navHistory[navHistory.length - 1];
+                const route = ROUTES[prevTab];
+                document.querySelectorAll('.iframe-container iframe').forEach(f => f.classList.remove('active'));
+                document.getElementById(route.frame).classList.add('active');
+
+                document.getElementById('navTitle').textContent = route.title;
+                document.getElementById('backBtn').classList.toggle('show', route.showBack);
+
+                currentTab = prevTab;
+            }
         }
 
-        // 更新导航栏标题
-        document.getElementById('navbarTitle').textContent = config.title;
+        // ====== Toast ======
+        function showToast(msg, duration = 2000) {
+            const t = document.getElementById('shellToast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), duration);
+        }
 
-        // 转场动画
-        const overlay = document.getElementById('transitionOverlay');
-        overlay.classList.add('active');
+        // ====== 监听子页面 postMessage ======
+        window.addEventListener('message', function(e) {
+            const data = e.data;
+            if (!data) return;
 
-        setTimeout(() => {
-            // 切换 iframe
-            document.getElementById('mainFrame').src = src;
-            currentTab = tabKey;
+            if (data.type === 'navigateToPage') {
+                switchTab(data.tab, data.params || {});
+            }
 
-            // 等待新页面加载后移除遮罩
-            document.getElementById('mainFrame').onload = function() {
+            if (data.type === 'switchTab') {
+                switchTab(data.tab);
+            }
+
+            if (data.type === 'navigateBack') {
+                goBack();
+            }
+
+            if (data.type === 'formSubmitted') {
+                showToast('提交成功，返回列表');
                 setTimeout(() => {
-                    overlay.classList.remove('active');
-                }, 80);
-            };
-
-            // 兜底：最多 1.5 秒后移除遮罩
-            setTimeout(() => {
-                overlay.classList.remove('active');
-            }, 1500);
-        }, 150);
-    }
-
-    // ====== 监听 iframe 内部消息 ======
-    window.addEventListener('message', function(e) {
-        const data = e.data;
-        if (!data) return;
-
-        // 表单提交成功 → 切回列表页
-        if (data.type === 'formSubmitted') {
-            showToast('提交成功，返回列表');
-            setTimeout(() => switchTab('list'), 800);
-        }
-
-        // 通用返回：回到上一个 TabBar 页面
-        if (data.type === 'navigateBack') {
-            switchTab('list');
-        }
-
-        // 跳转到指定页面（支持带参数）
-        if (data.type === 'navigateToPage') {
-            switchTab(data.tab, data.params || {});
-        }
-    });
-
-    // ====== Toast ======
-    function showToast(msg) {
-        const t = document.getElementById('shellToast');
-        t.textContent = msg;
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 2000);
-    }
-</script>
-
+                    const listFrame = document.getElementById('frame-list');
+                    listFrame.src = listFrame.getAttribute('src').split('?')[0];
+                    switchTab('list');
+                }, 800);
+            }
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>自建房安全检查 - 地图视图</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --fa-primary: #0b68da;
+            --fa-primary-light: #d2e1f6;
+            --fa-success: #67c23a;
+            --fa-success-light: #f1f8ec;
+            --fa-warning: #f69e1b;
+            --fa-warning-light: #fcf5ea;
+            --fa-danger: #ff5e5e;
+            --fa-danger-light: #fcefef;
+            --fa-text-primary: #303133;
+            --fa-text-secondary: #606266;
+            --fa-text-placeholder: #909399;
+            --fa-bg-page: #efeff4;
+            --fa-bg-container: #ffffff;
+            --fa-bg-secondary: #efeff4;
+            --fa-border: #eee;
+            --fa-radius: 5px;
+            --fa-radius-lg: 5px;
+            --fa-radius-round: 999px;
+            --fa-font-size-xs: 12px;
+            --fa-font-size-s: 12px;
+            --fa-font-size-base: 14px;
+            --fa-font-size-m: 16px;
+            --fa-spacer-1: 4px;
+            --fa-spacer-2: 8px;
+            --fa-spacer-3: 12px;
+            --fa-spacer-4: 16px;
+            --fa-spacer-5: 20px;
+            --fa-shadow-1: 0 4px 16px 0 #0000000d;
+            --fa-shadow-2: 0 -5px 10px rgba(0,0,0,0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: "Alibaba PuHuiTi 2.0", -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(160deg, #0b1a3e 0%, #162d6e 40%, #1e3f8f 100%);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        }
+        .container { width: 100%; max-width: 480px; }
+        .phone-frame {
+            background: var(--fa-bg-page); border-radius: var(--fa-radius-lg);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3), 0 0 0 6px #111;
+            overflow: hidden; height: 800px; display: flex; flex-direction: column;
+        }
+
+        /* ====== 顶部导航区 ====== */
+        .nav-area { background: var(--fa-bg-container); flex-shrink: 0; }
+        .status-bar { padding: 8px var(--fa-spacer-5); display: flex; justify-content: space-between; font-size: var(--fa-font-size-s); color: var(--fa-text-secondary); }
+        .navbar { padding: var(--fa-spacer-3) var(--fa-spacer-5); display: flex; align-items: center; justify-content: space-between; }
+        .navbar-title { font-size: var(--fa-font-size-m); font-weight: 700; color: var(--fa-text-primary); }
+        .navbar-actions { display: flex; align-items: center; gap: var(--fa-spacer-4); }
+        .navbar-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; transition: background 0.2s; color: var(--fa-text-secondary); }
+        .navbar-btn:active { background: rgba(0,0,0,0.05); }
+        .search-bar { padding: 0 var(--fa-spacer-5) var(--fa-spacer-4); }
+        .search-input-wrap { background: var(--fa-bg-page); border-radius: var(--fa-radius-round); padding: 10px var(--fa-spacer-4); display: flex; align-items: center; gap: var(--fa-spacer-2); }
+        .search-input-wrap input { flex: 1; border: none; background: transparent; outline: none; font-size: var(--fa-font-size-base); color: var(--fa-text-primary); font-family: "Alibaba PuHuiTi 2.0"; }
+        .search-input-wrap input::placeholder { color: var(--fa-text-placeholder); }
+
+        /* ====== 地图区域 ====== */
+        .map-wrapper { flex: 1; position: relative; overflow: hidden; }
+        #map { width: 100%; height: 100%; z-index: 1; }
+        /* 隐藏 Leaflet 水印 */
+        .leaflet-control-attribution { display: none !important; }
+
+        /* ====== 地图浮动按钮组 ====== */
+        .map-controls { position: absolute; top: var(--fa-spacer-3); right: var(--fa-spacer-3); z-index: 1000; display: flex; flex-direction: column; gap: var(--fa-spacer-2); }
+        .map-ctrl-btn {
+            width: 40px; height: 40px; background: var(--fa-bg-container); border-radius: var(--fa-radius);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s; border: 1px solid rgba(0,0,0,0.06);
+        }
+        .map-ctrl-btn:active { transform: scale(0.92); }
+        .map-ctrl-btn.active { background: var(--fa-primary); }
+        .map-ctrl-btn.active svg { stroke: #fff; }
+        .map-ctrl-btn svg { width: 20px; height: 20px; stroke: var(--fa-text-secondary); stroke-width: 2; fill: none; }
+
+        /* ====== 图层面板 ====== */
+        .layer-panel {
+            position: absolute; top: 152px; right: var(--fa-spacer-3); z-index: 1000;
+            background: var(--fa-bg-container); border-radius: var(--fa-radius);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15); padding: var(--fa-spacer-3); min-width: 150px;
+            display: none;
+        }
+        .layer-panel.show { display: block; }
+        .layer-panel-title { font-size: var(--fa-font-size-xs); color: var(--fa-text-placeholder); font-weight: 600; margin-bottom: var(--fa-spacer-2); padding-bottom: var(--fa-spacer-2); border-bottom: 1px solid var(--fa-border); }
+        .layer-row { display: flex; align-items: center; gap: var(--fa-spacer-2); padding: var(--fa-spacer-2) 0; cursor: pointer; }
+        .layer-row label { font-size: var(--fa-font-size-xs); color: var(--fa-text-secondary); cursor: pointer; flex: 1; }
+        .layer-check { width: 18px; height: 18px; border-radius: 3px; border: 1.5px solid #c0c4cc; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+        .layer-check.checked { background: var(--fa-primary); border-color: var(--fa-primary); }
+        .layer-check.checked::after { content: '✓'; color: #fff; font-size: 11px; font-weight: 700; }
+
+        /* ====== 图例面板（右下角常驻） ====== */
+        .legend-panel {
+            position: absolute; bottom: 56px; right: var(--fa-spacer-3); z-index: 1000;
+            background: rgba(255,255,255,0.92); border-radius: var(--fa-radius);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12); padding: var(--fa-spacer-2) var(--fa-spacer-3);
+            backdrop-filter: blur(4px);
+        }
+        .legend-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+        .legend-text { font-size: 11px; color: var(--fa-text-secondary); white-space: nowrap; }
+
+        /* ====== 底部固定切换栏 ====== */
+        .bottom-bar {
+            position: absolute; bottom: 0; left: 0; right: 0; z-index: 1001;
+            background: var(--fa-bg-container); border-top: 1px solid var(--fa-border);
+            padding: var(--fa-spacer-3) var(--fa-spacer-5); display: flex; justify-content: center;
+        }
+        .bottom-toggle {
+            display: flex; align-items: center; justify-content: center; gap: var(--fa-spacer-2);
+            padding: 10px var(--fa-spacer-6); border: 1px solid var(--fa-border); border-radius: var(--fa-radius-round);
+            font-size: var(--fa-font-size-xs); color: var(--fa-text-secondary); cursor: pointer;
+            background: var(--fa-bg-container); transition: all 0.15s;
+        }
+        .bottom-toggle:active { background: var(--fa-bg-secondary); }
+        .bottom-toggle svg { width: 14px; height: 14px; stroke: var(--fa-text-secondary); stroke-width: 2; fill: none; }
+
+        /* ====== 建筑信息卡片面板 ====== */
+        .bottom-panel {
+            position: absolute; bottom: 52px; left: 0; right: 0; z-index: 1000;
+            background: var(--fa-bg-container); border-radius: var(--fa-radius-lg) var(--fa-radius-lg) 0 0;
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 55%;
+            overflow-y: auto;
+        }
+        .bottom-panel::-webkit-scrollbar { display: none; }
+        .bottom-panel.collapsed { transform: translateY(100%); }
+        .bottom-handle { display: flex; justify-content: center; padding: var(--fa-spacer-2) 0 0; }
+        .bottom-handle-bar { width: 36px; height: 4px; background: #d0d0d0; border-radius: 2px; }
+
+        /* ====== 建筑信息卡片（与列表页一致） ====== */
+        .card-content-wrap { padding: var(--fa-spacer-3) var(--fa-spacer-5) var(--fa-spacer-2); }
+        .task-card { background: var(--fa-bg-container); overflow: hidden; }
+        .card-top-bar { height: 3px; width: 100%; }
+        .card-top-bar.unchecked { background: var(--fa-danger); }
+        .card-top-bar.checking { background: var(--fa-warning); }
+        .card-top-bar.checked { background: var(--fa-success); }
+        .card-content { padding: var(--fa-spacer-4) var(--fa-spacer-5); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--fa-spacer-3); }
+        .card-title-area { flex: 1; min-width: 0; padding-right: var(--fa-spacer-3); }
+        .card-title { font-size: var(--fa-font-size-m); font-weight: 700; color: var(--fa-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: normal; }
+        .card-subtitle { font-size: var(--fa-font-size-s); color: var(--fa-text-placeholder); margin-top: 5px; letter-spacing: 0.5px; }
+        .card-status-area { display: flex; flex-direction: column; gap: var(--fa-spacer-1); align-items: flex-end; flex-shrink: 0; }
+        .td-tag { display: inline-flex; align-items: center; font-size: var(--fa-font-size-xs); padding: 3px 10px; border-radius: 3px; font-weight: 500; white-space: nowrap; line-height: 1.6; }
+        .td-tag.unchecked { background: var(--fa-danger-light); color: var(--fa-danger); }
+        .td-tag.checking { background: var(--fa-warning-light); color: var(--fa-warning); }
+        .td-tag.checked { background: var(--fa-success-light); color: var(--fa-success); }
+        .td-tag.audit-default { background: var(--fa-bg-secondary); color: #5a5a5a; border: 1px solid var(--fa-border); }
+        .td-tag.audit-pass { background: var(--fa-success-light); color: var(--fa-success); border: 1px solid rgba(103,194,58,0.3); }
+        .td-tag.audit-reject { background: var(--fa-danger-light); color: var(--fa-danger); border: 1px solid rgba(255,94,94,0.3); }
+        .card-address { display: flex; align-items: flex-start; gap: var(--fa-spacer-2); padding: var(--fa-spacer-3); background: var(--fa-bg-secondary); border-radius: var(--fa-radius); margin-bottom: var(--fa-spacer-3); }
+        .card-address-text { flex: 1; font-size: var(--fa-font-size-s); color: var(--fa-text-secondary); line-height: 1.6; }
+        .card-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px var(--fa-spacer-4); margin-bottom: var(--fa-spacer-3); }
+        .card-info-item { display: flex; flex-direction: row; align-items: baseline; }
+        .card-info-label { font-size: var(--fa-font-size-xs); color: var(--fa-text-placeholder); white-space: nowrap; flex-shrink: 0; }
+        .card-info-label::after { content: '：'; }
+        .card-info-value { font-size: var(--fa-font-size-xs); color: var(--fa-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .card-warning-strip { display: flex; align-items: center; gap: 6px; background: #565656; color: #fff; padding: 7px 12px; border-radius: 3px; font-size: var(--fa-font-size-xs); margin-bottom: var(--fa-spacer-3); border-left: 3px solid #ffa940; }
+        .card-result-tag { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fa-font-size-s); padding: 4px 12px; border-radius: 3px; margin-bottom: var(--fa-spacer-3); }
+        .card-result-tag.safe { background: var(--fa-success-light); color: var(--fa-success); }
+        .card-result-tag.risk { background: var(--fa-danger-light); color: var(--fa-danger); }
+        .card-footer { border-top: 1px solid var(--fa-border); padding: var(--fa-spacer-3) var(--fa-spacer-5); display: flex; gap: var(--fa-spacer-2); }
+        .td-btn { flex: 1; padding: 9px 12px; border-radius: var(--fa-radius); font-size: var(--fa-font-size-s); font-weight: 500; cursor: pointer; border: none; text-align: center; transition: opacity 0.15s; line-height: 1.4; font-family: "Alibaba PuHuiTi 2.0"; }
+        .td-btn:active { opacity: 0.7; }
+        .td-btn-brand { background: var(--fa-primary); color: #fff; }
+        .td-btn-outline { background: var(--fa-bg-container); color: var(--fa-primary); border: 1px solid var(--fa-primary); }
+        .no-selection-hint { text-align: center; padding: var(--fa-spacer-5) 0 var(--fa-spacer-2); font-size: var(--fa-font-size-xs); color: var(--fa-text-placeholder); }
+
+        /* ====== Toast ====== */
+        .td-toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.75); color: #fff; padding: 12px 28px; border-radius: var(--fa-radius); font-size: var(--fa-font-size-base); z-index: 2000; display: none; backdrop-filter: blur(4px); }
+        .td-toast.show { display: block; animation: toastFade .2s ease; }
+        @keyframes toastFade { from { opacity:0; transform: translate(-50%,-50%) scale(.9); } to { opacity:1; transform: translate(-50%,-50%) scale(1); } }
+
+        /* ====== iframe 适配 ====== */
+        html.in-iframe body { background: var(--fa-bg-page); padding: 0; }
+        html.in-iframe .phone-frame { border-radius: 0; box-shadow: none; height: 100vh; }
+        html.in-iframe .status-bar { display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="phone-frame">
+        <!-- 顶部导航+搜索 -->
+        <div class="nav-area">
+            <div class="status-bar"><span>9:41</span><span style="letter-spacing:4px">&#9679;&#9679;&#9679;</span></div>
+            <div class="navbar">
+                <span class="navbar-title">自建房安全检查</span>
+                <div class="navbar-actions">
+                </div>
+            </div>
+            <div class="search-bar">
+                <div class="search-input-wrap">
+                    <span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    </span>
+                    <input type="text" placeholder="搜索房屋名称 / 编号 / 地址" id="searchInput" oninput="handleSearch()">
+                </div>
+            </div>
+        </div>
+
+        <!-- 地图 -->
+        <div class="map-wrapper">
+            <div id="map"></div>
+
+            <!-- 浮动按钮 -->
+            <div class="map-controls">
+                <!-- ① 建筑边界切换 -->
+                <div class="map-ctrl-btn" id="btnBoundary" onclick="toggleBoundary()" title="建筑框选">
+                    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+                </div>
+                <!-- ② 图层控制 -->
+                <div class="map-ctrl-btn" id="btnLayer" onclick="toggleLayerPanel()" title="图层">
+                    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                </div>
+            </div>
+
+            <!-- 图层面板 -->
+            <div class="layer-panel" id="layerPanel">
+                <div class="layer-panel-title">图层管理</div>
+                <div class="layer-row" onclick="toggleLayer('satellite')">
+                    <div class="layer-check checked" id="checkSatellite"></div>
+                    <label>卫星地图</label>
+                </div>
+                <div class="layer-row" onclick="toggleLayer('boundary')">
+                    <div class="layer-check" id="checkBoundary"></div>
+                    <label>建筑框选边界</label>
+                </div>
+            </div>
+
+            <!-- 图例（常驻右下角） -->
+            <div class="legend-panel" id="legendPanel">
+                <div class="legend-row"><div class="legend-dot" style="background:#ff5e5e"></div><span class="legend-text">未检查</span></div>
+                <div class="legend-row"><div class="legend-dot" style="background:#f69e1b"></div><span class="legend-text">检查中</span></div>
+                <div class="legend-row"><div class="legend-dot" style="background:#67c23a"></div><span class="legend-text">已检查（安全）</span></div>
+                <div class="legend-row"><div class="legend-dot" style="background:#cc0000"></div><span class="legend-text">已检查（隐患）</span></div>
+            </div>
+
+            <!-- 建筑信息卡片面板 -->
+            <div class="bottom-panel collapsed" id="bottomPanel">
+                <div class="bottom-handle"><div class="bottom-handle-bar"></div></div>
+                <div id="bottomCardContent">
+                    <div class="no-selection-hint">点击地图上的房屋查看详情</div>
+                </div>
+            </div>
+
+            <!-- 底部固定切换栏 -->
+            <div class="bottom-bar">
+                <div class="bottom-toggle" onclick="switchToList()">
+                    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    <span>切换到列表模式</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="td-toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ====== 状态色 ======
+const STATUS_COLORS = {
+    '未检查': { border: '#ff5e5e', fill: 'rgba(255,94,94,0.30)', cls: 'unchecked' },
+    '检查中': { border: '#f69e1b', fill: 'rgba(246,158,27,0.30)', cls: 'checking' },
+    '安全':   { border: '#67c23a', fill: 'rgba(103,194,58,0.30)', cls: 'checked' },
+    '隐患':   { border: '#cc0000', fill: 'rgba(204,0,0,0.30)',   cls: 'checked' }
+};
+
+// ====== Mock 建筑数据 ======
+const BUILDINGS = [
+    { id:1, name:'罗湖区水闸1号楼', code:'4403030001', status:'未检查', result:'-', area:'罗湖区', street:'黄贝街道', community:'水库社区', address:'船步街71号', isSelfBuild:'是', isBusiness:'否', inspectionTime:'', uploadTime:'2026-03-20', auditStatus:'-', cannotInspect:'-',
+      coords:[[22.5538,114.1338],[22.5538,114.1345],[22.5542,114.1345],[22.5542,114.1338]] },
+    { id:2, name:'福田区莲塘2号楼', code:'4403030002', status:'未检查', result:'-', area:'福田区', street:'东门街道', community:'新秀社区', address:'莲塘路72号', isSelfBuild:'是', isBusiness:'是', inspectionTime:'', uploadTime:'2026-03-21', auditStatus:'-', cannotInspect:'建筑不存在',
+      coords:[[22.5528,114.1350],[22.5528,114.1357],[22.5532,114.1357],[22.5532,114.1350]] },
+    { id:3, name:'南山区吓围3号楼', code:'4403030003', status:'检查中', result:'-', area:'南山区', street:'桂园街道', community:'湖贝社区', address:'布吉路73号', isSelfBuild:'否', isBusiness:'否', inspectionTime:'2022-06-15', uploadTime:'2026-03-22', auditStatus:'街道审核', cannotInspect:'-',
+      coords:[[22.5533,114.1362],[22.5533,114.1368],[22.5537,114.1368],[22.5537,114.1362]] },
+    { id:4, name:'宝安区农批市场4号楼', code:'4403030004', status:'检查中', result:'-', area:'宝安区', street:'南湖街道', community:'松园社区', address:'桂园路74号', isSelfBuild:'是', isBusiness:'否', inspectionTime:'2022-06-16', uploadTime:'2026-03-23', auditStatus:'待专排接收', cannotInspect:'-',
+      coords:[[22.5543,114.1355],[22.5543,114.1361],[22.5547,114.1361],[22.5547,114.1355]] },
+    { id:5, name:'龙岗区红群楼5号楼', code:'4403030005', status:'已检查', result:'未发现安全隐患', area:'龙岗区', street:'翠竹街道', community:'木头龙社区', address:'莲塘路75号', isSelfBuild:'是', isBusiness:'是', inspectionTime:'2022-06-17', uploadTime:'2026-03-24', auditStatus:'已通过', cannotInspect:'-',
+      coords:[[22.5520,114.1345],[22.5520,114.1351],[22.5524,114.1351],[22.5524,114.1345]] },
+    { id:6, name:'盐田区布吉6号楼', code:'4403030006', status:'已检查', result:'疑似存在结构安全隐患', area:'盐田区', street:'黄贝街道', community:'水库社区', address:'船步街76号', isSelfBuild:'是', isBusiness:'否', inspectionTime:'2022-06-18', uploadTime:'2026-03-25', auditStatus:'区级审核', cannotInspect:'-',
+      coords:[[22.5548,114.1342],[22.5548,114.1348],[22.5552,114.1348],[22.5552,114.1342]] },
+    { id:7, name:'罗湖区桂园7号楼', code:'4403030007', status:'已检查', result:'未发现安全隐患', area:'罗湖区', street:'桂园街道', community:'松园社区', address:'桂园路77号', isSelfBuild:'否', isBusiness:'否', inspectionTime:'2022-06-19', uploadTime:'2026-03-26', auditStatus:'退回街道', cannotInspect:'-',
+      coords:[[22.5515,114.1358],[22.5515,114.1364],[22.5519,114.1364],[22.5519,114.1358]] },
+    { id:8, name:'福田区船步8号楼', code:'4403030008', status:'已检查', result:'疑似存在结构安全隐患', area:'福田区', street:'东门街道', community:'新秀社区', address:'船步街78号', isSelfBuild:'是', isBusiness:'是', inspectionTime:'2022-06-20', uploadTime:'2026-03-27', auditStatus:'退回网格', cannotInspect:'-',
+      coords:[[22.5525,114.1335],[22.5525,114.1341],[22.5529,114.1341],[22.5529,114.1335]] },
+    { id:9, name:'南山区莲塘9号楼', code:'4403030009', status:'已检查', result:'疑似存在结构安全隐患', area:'南山区', street:'南湖街道', community:'湖贝社区', address:'莲塘路79号', isSelfBuild:'是', isBusiness:'否', inspectionTime:'2022-06-21', uploadTime:'2026-03-28', auditStatus:'已通过', cannotInspect:'建筑不存在',
+      coords:[[22.5550,114.1360],[22.5550,114.1366],[22.5554,114.1366],[22.5554,114.1360]] }
+];
+
+// ====== 全局状态 ======
+let map, satelliteLayer, boundaryGroup, selectedBuilding = null;
+let layerState = { satellite: true, boundary: false };
+
+// ====== Toast ======
+function showToast(m,d=2000){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),d)}
+
+// ====== 获取建筑状态色 ======
+function getStatusColor(b) {
+    if (b.status === '未检查') return STATUS_COLORS['未检查'];
+    if (b.status === '检查中') return STATUS_COLORS['检查中'];
+    if (b.result && b.result.includes('隐患')) return STATUS_COLORS['隐患'];
+    return STATUS_COLORS['安全'];
+}
+
+// ====== 初始化地图 ======
+function initMap() {
+    map = L.map('map', { zoomControl: false, attributionControl: false }).setView([22.5535, 114.1352], 17);
+
+    // 卫星图层
+    satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+    if (layerState.satellite) satelliteLayer.addTo(map);
+
+    // 建筑边界图层组
+    boundaryGroup = L.layerGroup();
+    BUILDINGS.forEach(b => {
+        const sc = getStatusColor(b);
+        const polygon = L.polygon(b.coords, {
+            color: sc.border, weight: 2.5, opacity: 0.9,
+            fillColor: sc.fill ? sc.border : sc.border, fillOpacity: 0.30
+        });
+        polygon.bData = b;
+        polygon.on('click', function() { selectBuilding(b); });
+        // 鼠标悬停提示
+        polygon.bindTooltip(b.name, { direction: 'top', offset: [0, -10], className: 'building-tooltip' });
+        boundaryGroup.addLayer(polygon);
+    });
+    if (layerState.boundary) boundaryGroup.addTo(map);
+
+    // 点击地图空白关闭底部卡片
+    map.on('click', function(e) {
+        // 只在没有点击到建筑时关闭
+        if (!e.originalEvent._buildingClicked) {
+            deselectBuilding();
+        }
+    });
+}
+
+// ====== 选中建筑 ======
+function selectBuilding(b) {
+    selectedBuilding = b;
+    event._buildingClicked = true;
+    renderBottomCard(b);
+    const panel = document.getElementById('bottomPanel');
+    panel.classList.remove('collapsed');
+
+    // 聚焦到建筑
+    map.flyTo(getCenter(b.coords), 18, { duration: 0.5 });
+}
+
+function deselectBuilding() {
+    selectedBuilding = null;
+    document.getElementById('bottomCardContent').innerHTML = '<div class="no-selection-hint">点击地图上的房屋查看详情</div>';
+    document.getElementById('bottomPanel').classList.add('collapsed');
+}
+
+function getCenter(coords) {
+    let lat=0, lng=0;
+    coords.forEach(c => { lat += c[0]; lng += c[1]; });
+    return [lat/coords.length, lng/coords.length];
+}
+
+// ====== 渲染底部卡片（与列表页一致） ======
+function renderBottomCard(b) {
+    const sc = getStatusColor(b);
+    const statusCls = { '未检查':'unchecked','检查中':'checking','已检查':'checked' }[b.status] || 'unchecked';
+    let html = `<div class="task-card"><div class="card-top-bar ${statusCls}"></div><div class="card-content">`;
+    html += `<div class="card-header"><div class="card-title-area"><div class="card-title">${b.name}</div><div class="card-subtitle">${b.code}</div></div>`;
+    html += `<div class="card-status-area"><span class="td-tag ${statusCls}">${b.status}</span>${getAuditTag(b.auditStatus)}</div></div>`;
+    html += `<div class="card-address"><span class="card-address-text">${b.area}${b.street}${b.community}${b.address}</span></div>`;
+    html += `<div class="card-info-grid">`;
+    html += `<div class="card-info-item"><span class="card-info-label">是否自建房</span><span class="card-info-value">${b.isSelfBuild}</span></div>`;
+    html += `<div class="card-info-item"><span class="card-info-label">是否经营性自建房</span><span class="card-info-value">${b.isBusiness}</span></div>`;
+    html += `<div class="card-info-item"><span class="card-info-label">检查时间</span><span class="card-info-value">${b.inspectionTime||'-'}</span></div>`;
+    html += `<div class="card-info-item"><span class="card-info-label">上传时间</span><span class="card-info-value">${b.uploadTime||'-'}</span></div>`;
+    html += `</div>`;
+    if (b.cannotInspect && b.cannotInspect !== '-') {
+        html += `<div class="card-warning-strip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffa940" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>无法开展安全检查：${b.cannotInspect}</span></div>`;
+    }
+    if (b.result && b.result !== '-') {
+        const rc = b.result === '未发现安全隐患' ? 'safe' : 'risk';
+        const rt = b.result === '未发现安全隐患' ? '&#10003; 未发现安全隐患' : '&#9888; 疑似存在结构安全隐患';
+        html += `<span class="card-result-tag ${rc}">${rt}</span>`;
+    }
+    html += `</div><div class="card-footer">${getActionButtons(b)}</div></div>`;
+    document.getElementById('bottomCardContent').innerHTML = html;
+}
+
+function getAuditTag(status) {
+    if (status === '-' || status === '') return '';
+    let cls = 'audit-default';
+    if (status === '已通过') cls = 'audit-pass';
+    if (status === '退回街道' || status === '退回网格') cls = 'audit-reject';
+    return `<span class="td-tag ${cls}">${status}</span>`;
+}
+
+function getActionButtons(b) {
+    let btns = '';
+    if (b.status === '未检查') btns += `<button class="td-btn td-btn-brand" onclick="event.stopPropagation();onAddInspection(${b.id})">新增检查</button>`;
+    btns += `<button class="td-btn td-btn-outline" onclick="event.stopPropagation();onInspectionRecord(${b.id})">检查记录</button>`;
+    btns += `<button class="td-btn td-btn-outline" onclick="event.stopPropagation();showToast('查看网格巡查记录')">网格巡查记录</button>`;
+    return btns;
+}
+
+// ====== 按钮操作（与列表页一致） ======
+function onAddInspection(id) {
+    const b = BUILDINGS.find(i => i.id === id);
+    if (!b) return;
+    navigateToPage('form', { houseId:b.id, houseName:b.name, houseCode:b.code, houseArea:b.area, detailAddress:b.address });
+}
+function onInspectionRecord(id) {
+    const b = BUILDINGS.find(i => i.id === id);
+    if (!b) return;
+    navigateToPage('records', { houseId:b.id, houseName:b.name, houseCode:b.code, houseArea:b.area });
+}
+function navigateToPage(tab, params) {
+    if (window.parent !== window) {
+        window.parent.postMessage({ type:'navigateToPage', tab:tab, params:params||{} }, '*');
+    } else {
+        showToast('跳转：' + tab);
+    }
+}
+
+// ====== 控件：建筑边界切换 ======
+function toggleBoundary() {
+    layerState.boundary = !layerState.boundary;
+    const btn = document.getElementById('btnBoundary');
+    const chk = document.getElementById('checkBoundary');
+    if (layerState.boundary) {
+        boundaryGroup.addTo(map);
+        btn.classList.add('active');
+        chk.classList.add('checked');
+    } else {
+        map.removeLayer(boundaryGroup);
+        btn.classList.remove('active');
+        chk.classList.remove('checked');
+    }
+    closePanels();
+}
+
+// ====== 控件：图层面板 ======
+function toggleLayerPanel() {
+    const lp = document.getElementById('layerPanel');
+    const isOpen = lp.classList.contains('show');
+    closePanels();
+    if (!isOpen) lp.classList.add('show');
+}
+function toggleLayer(type) {
+    if (type === 'satellite') {
+        layerState.satellite = !layerState.satellite;
+        const chk = document.getElementById('checkSatellite');
+        if (layerState.satellite) { satelliteLayer.addTo(map); chk.classList.add('checked'); }
+        else { map.removeLayer(satelliteLayer); chk.classList.remove('checked'); }
+    } else if (type === 'boundary') {
+        toggleBoundary();
+        return; // toggleBoundary already closes panels
+    }
+}
+
+// ====== 控件：图例 ======
+function toggleLegend() {
+    const lp = document.getElementById('legendPanel');
+    const isOpen = lp.classList.contains('show');
+    closePanels();
+    if (!isOpen) lp.classList.add('show');
+}
+
+function closePanels() {
+    document.getElementById('layerPanel').classList.remove('show');
+    document.getElementById('legendPanel').classList.remove('show');
+}
+
+// ====== 切换到列表 ======
+function switchToList() {
+    if (window.parent !== window) {
+        window.parent.postMessage({ type:'navigateToPage', tab:'list', params:{} }, '*');
+    } else {
+        window.location.href = '自建房安全检查列表_小程序端_原型.html';
+    }
+}
+
+// ====== 搜索 ======
+let searchTimer;
+function handleSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        const kw = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+        if (!kw) {
+            // 恢复所有建筑
+            boundaryGroup.eachLayer(l => l.setStyle({ opacity: 0.9, fillOpacity: 0.30 }));
+            return;
+        }
+        let found = [];
+        boundaryGroup.eachLayer(l => {
+            const b = l.bData;
+            const match = b.name.toLowerCase().includes(kw) || b.code.toLowerCase().includes(kw) || (b.area+b.address).toLowerCase().includes(kw);
+            if (match) {
+                l.setStyle({ opacity: 1, fillOpacity: 0.5 });
+                found.push(b);
+            } else {
+                l.setStyle({ opacity: 0.15, fillOpacity: 0.05 });
+            }
+        });
+        if (found.length > 0) {
+            const bounds = L.latLngBounds(found.map(b => b.coords.map(c => c)));
+            map.flyToBounds(bounds, { padding: [60, 60], duration: 0.5 });
+        }
+    }, 300);
+}
+
+// ====== 初始化 ======
+initMap();
+if (window.parent !== window) document.documentElement.classList.add('in-iframe');
+
+// 默认选中图斑上图
+boundaryGroup.addTo(map);
+layerState.boundary = true;
+document.getElementById('checkBoundary').classList.add('checked');
+document.getElementById('btnBoundary').classList.add('active');
+
+// 默认选中第一个建筑
+selectBuilding(BUILDINGS[0]);
+</script>
+</body>
+</html>
